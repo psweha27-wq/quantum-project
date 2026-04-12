@@ -1,0 +1,115 @@
+clc;
+clear;
+close all;
+
+disp('--- FINAL MULTI-USER REAL-TIME QKD DEMO ---');
+
+%% STEP 1: Select Number of Users5
+N = input('Enter number of users (Max 6): ');
+
+if N < 2 || N > 6
+    error('Number of users must be between 2 and 6');
+end
+
+disp(['Total Users in Network: ', num2str(N)]);
+
+%% STEP 2: Authentication
+valid_users = authentication(N);
+disp('Authenticated Users:');
+disp(valid_users);
+
+%% STEP 3: Fix Sender & Select Receiver
+sender = 1;
+receiver = input(['Select receiver user (2 to ', num2str(N), '): ']);
+
+if receiver < 2 || receiver > N
+    error('Invalid receiver selected');
+end
+
+%% STEP 4: Message Input
+plaintext = input('Sender (User 1) - Enter message: ', 's');
+
+%% STEP 5: Convert Message to Binary
+msg_binary_full = reshape(dec2bin(plaintext,8).' - '0', 1, []);
+MSG_LEN = length(msg_binary_full);
+
+%% STEP 6: Generate Pairwise Quantum Keys
+% Request large length (quantum protocol may shrink it)
+REQUEST_LEN = max(MSG_LEN, 128);
+
+pair_keys = cell(N);
+
+for i = 1:N
+    for j = i+1:N
+        pair_keys{i,j} = kmb09_pairwise_key(REQUEST_LEN);
+    end
+end
+
+%% STEP 7: Select Correct Pairwise Key
+K_sr_full = pair_keys{sender, receiver};
+actual_key_len = length(K_sr_full);
+
+MAX_BITS = 50;
+
+% Safe usable bits
+USE_BITS = min([MSG_LEN, MAX_BITS, actual_key_len]);
+
+if USE_BITS == 0
+    error('Quantum key length is too small to encrypt message.');
+end
+
+% Trim message and key safely
+msg_binary = msg_binary_full(1:USE_BITS);
+K_sr = K_sr_full(1:USE_BITS);
+
+disp(['Quantum Pairwise Key Length Used: ', num2str(USE_BITS), ' bits']);
+disp(['Displaying First ', num2str(min(50,USE_BITS)), ' Bits:']);
+disp(K_sr(1:min(50,USE_BITS)));
+
+%% STEP 8: Encrypt
+ciphertext = xor(msg_binary, K_sr);
+
+%% STEP 9: Decryption Results
+disp('-----------------------------------');
+disp(['Sender Message : ', plaintext]);
+disp('Decryption Results:');
+
+for user = 2:N
+    
+    % Get correct key order
+    if sender < user
+        K_current_full = pair_keys{sender, user};
+    else
+        K_current_full = pair_keys{user, sender};
+    end
+    
+    actual_len = length(K_current_full);
+    safe_bits = min([USE_BITS, actual_len]);
+    
+    if safe_bits == 0
+        disp(['User ', num2str(user), ' : Key too short']);
+        continue;
+    end
+    
+    K_current = K_current_full(1:safe_bits);
+    decrypted_bits = xor(ciphertext(1:safe_bits), K_current);
+    
+    % Convert only full characters
+    usable_bits = floor(safe_bits/8) * 8;
+    decrypted_bits = decrypted_bits(1:usable_bits);
+    
+    if usable_bits > 0
+        text = char(bin2dec(reshape(char(decrypted_bits+'0'),8,[]).')).';
+    else
+        text = '';
+    end
+    
+    if user == receiver
+        disp(['User ', num2str(user), ' (AUTHORIZED)   : ', text]);
+    else
+        disp(['User ', num2str(user), ' (UNAUTHORIZED) : ', text]);
+    end
+end
+
+disp('-----------------------------------');
+disp('Final Multi-User Real-Time QKD Demo Completed Successfully');

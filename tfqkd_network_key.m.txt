@@ -1,0 +1,41 @@
+
+function [K_network, QBER] = tfqkd_network_key(N_USERS, K_ITER, MU)
+% TF-QKD Network Key Generation with QBER calculation
+
+%% Step 1: Twin-Field Quantum Interference Simulation
+interference = zeros(1, K_ITER);
+
+for k = 1:K_ITER
+    % Random phase for each user (quantum phase randomness)
+    phases = 2*pi*rand(1, N_USERS);
+
+    % Quantum field amplitudes
+    amplitudes = sqrt(MU) * exp(1i * phases);
+
+    % Interference at middle node
+    total_field = sum(amplitudes);
+
+    % Intensity measurement
+    interference(k) = abs(total_field)^2;
+end
+%% Step 2: Normalize interference values
+interference = interference / max(interference);
+
+%% Step 3: Ideal Quantum Key (Before Noise)
+K_ideal = sigmoid_mapping(interference);
+
+%% Step 4: Add Quantum Channel Noise (Attack / Imperfection)
+noise_probability = 0.05;   % 5% quantum noise
+noise = rand(size(K_ideal)) < noise_probability;
+
+% Received key after noise
+K_received = xor(K_ideal, noise);
+
+%% Step 5: Calculate Quantum Bit Error Rate (QBER)
+QBER = sum(K_ideal ~= K_received) / length(K_ideal);
+
+%% Step 6: Output Final Network Key
+K_network = K_received;
+
+end
+

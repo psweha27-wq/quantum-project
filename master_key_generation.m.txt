@@ -1,0 +1,5 @@
+
+function K_master = master_key_generation(K_network, K_pair)
+min_len = min(length(K_network), length(K_pair));
+K_master = xor(K_network(1:min_len), K_pair(1:min_len));
+end

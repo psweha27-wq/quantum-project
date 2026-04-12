@@ -1,0 +1,5 @@
+
+N_USERS = 6;
+K_ITER = 1000;
+MU = 0.1;
+BIT_THRESHOLD = 0.5;

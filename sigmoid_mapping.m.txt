@@ -1,0 +1,5 @@
+
+function bits = sigmoid_mapping(values)
+sigmoid = 1 ./ (1 + exp(-10*(values - 0.5)));
+bits = sigmoid > 0.5;
+end

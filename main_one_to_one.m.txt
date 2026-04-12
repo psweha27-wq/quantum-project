@@ -1,0 +1,59 @@
+clc;
+clear;
+close all;
+config;
+
+disp('--- ONE TO ONE REAL-TIME QKD DEMO ---');
+
+%% Step 1: Authentication
+valid_users = authentication(N_USERS);
+disp('Authenticated Users:');
+disp(valid_users);
+
+%% Step 2: Message Input
+plaintext = input('User 1 - Enter message to send: ','s');
+
+%% Step 3: Convert Message to Binary
+msg_binary_full = reshape(dec2bin(plaintext,8).' - '0', 1, []);
+
+%% Step 4: Generate Quantum Network Key
+[K_network, QBER] = tfqkd_network_key(2, length(msg_binary_full), MU);
+
+key_len = length(K_network);
+
+%% Step 5: Maximum 6 Character Rule
+MAX_CHAR = 6;
+
+msg_len_char = length(plaintext);
+
+if msg_len_char <= MAX_CHAR
+    use_chars = msg_len_char;
+else
+    use_chars = MAX_CHAR;
+end
+
+use_bits = use_chars * 8;
+
+msg_binary = msg_binary_full(1:use_bits);
+K_use = K_network(1:use_bits);
+
+%% Display Quantum Key
+disp('Quantum Network Key (First 50 Bits):');
+disp(K_network(1:min(50,key_len)));
+
+%% Step 6: Encryption
+ciphertext = xor(msg_binary, K_use);
+
+%% Step 7: Decryption
+decrypted_binary = xor(ciphertext, K_use);
+decrypted_text = char(bin2dec(reshape(char(decrypted_binary+'0'),8,[]).')).';
+
+%% Step 8: Display Results
+disp('-----------------------------------');
+disp(['Sender Message     : ', plaintext]);
+disp(['Encrypted Bits     : ', num2str(ciphertext)]);
+disp(['Received Message   : ', decrypted_text]);
+disp(['QBER               : ', num2str(QBER)]);
+disp('-----------------------------------');
+
+disp('One-to-One Real-Time QKD Demo Completed');

@@ -1,0 +1,16 @@
+
+function K_pair = kmb09_pairwise_key(K_LEN)
+alice_basis = randi([0 1],1,K_LEN);
+bob_basis = randi([0 1],1,K_LEN);
+alice_bits = randi([0 1],1,K_LEN);
+bob_bits = zeros(1,K_LEN);
+for i = 1:K_LEN
+    if alice_basis(i) == bob_basis(i)
+        bob_bits(i) = alice_bits(i);
+    else
+        bob_bits(i) = randi([0 1]);
+    end
+end
+sifted = alice_basis == bob_basis;
+K_pair = alice_bits(sifted);
+end

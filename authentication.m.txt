@@ -1,0 +1,4 @@
+
+function valid_users = authentication(N)
+valid_users = true(1,N);
+end

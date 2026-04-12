@@ -1,0 +1,67 @@
+clc; clear; close all;
+
+%% Load Configuration Parameters
+config;
+
+%% Step 1: User Authentication
+valid_users = authentication(N_USERS);
+
+disp('Authenticated Users:');
+disp(valid_users);
+
+%% Step 2: Start Timer (for Key Generation Rate)
+tic;
+
+%% Step 3: TF-QKD Network Key Generation (with QBER)
+[K_network, QBER] = tfqkd_network_key(N_USERS, K_ITER, MU);
+
+%% Step 4: Stop Timer and Calculate Key Generation Rate
+execution_time = toc;
+key_rate = length(K_network) / execution_time;
+
+%% Display Performance Metrics
+disp(['Quantum Bit Error Rate (QBER) = ', num2str(QBER)]);
+disp(['Key Generation Rate = ', num2str(key_rate), ' bits/sec']);
+
+%% Step 5: Plot Network Key
+figure;
+stem(K_network(1:50),'filled');
+title('Network Key (First 50 Bits)');
+xlabel('Bit Index');
+ylabel('Bit Value');
+
+%% Step 6: Pairwise Key Generation
+pair_keys = cell(N_USERS);
+
+for i = 1:N_USERS
+    for j = i+1:N_USERS
+        pair_keys{i,j} = kmb09_pairwise_key(500);
+    end
+end
+figure;
+plot_no = 1;
+
+for i = 1:N_USERS
+    for j = i+1:N_USERS
+        subplot(5,3,plot_no);   % 6 users → 15 pairs
+        stem(pair_keys{i,j}(1:50),'filled');
+        title(['Pair Key U',num2str(i),' - U',num2str(j)]);
+        xlabel('Bit Index');
+        ylabel('Bit');
+        plot_no = plot_no + 1;
+    end
+end
+
+%% Step 7: Master Key Generation
+K_master = master_key_generation(K_network, pair_keys{1,2});
+
+%% Step 8: Plot Master Key
+figure;
+stem(K_master(1:50),'filled');
+title('Master Key');
+xlabel('Bit Index');
+ylabel('Bit Value');
+
+%% End of Project
+disp('Project Execution Completed Successfully');
+
